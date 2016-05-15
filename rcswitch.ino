@@ -28,28 +28,21 @@ PubSubClient client(wclient);
 // Short: 140us
 // Sync: 5980us
 
-#define longdel 7284
-#define shortdel 1572
-#define syncdel 68809
-
 inline void longdelay()
 {
-  volatile int us = longdel;
-  for(int i = 0; i < us; i++) { }
+  delayMicroseconds(640);
 }
 
 inline void shortdelay()
 {
-  volatile int us = shortdel;
-  for(int i = 0; i < us; i++) { }
+  delayMicroseconds(140);
 }
 
 inline void sendsync() {
   digitalWrite(PIN_DATA, HIGH);
   shortdelay();
   digitalWrite(PIN_DATA, LOW);
-  volatile int us = syncdel;
-  for(int i = 0; i < us; i++) { }
+  delayMicroseconds(5980);
 }
 
 void writePacket(byte* payload, unsigned int length) { 
@@ -100,8 +93,11 @@ void callback(char* inTopic, byte* payload, unsigned int length){
   Serial.println();
   
   digitalWrite(PIN_STATUS_SENDING, LOW);
-  for(int i = 0; i < 10; i++) {
+
+  // Resend six times to make sure the command was received
+  for(int i = 0; i < 6; i++) {
     writePacket(payload, length);
+    delayMicroseconds(100);
   }
   digitalWrite(PIN_STATUS_SENDING, HIGH);
   
@@ -149,6 +145,7 @@ void setup() {
     Serial.println(F("Error setting up MDNS responder!"));
   }
   Serial.println("mDNS responder started");
+  //MDNS.addService("mqtt", "tcp", 1883);
 
   int n = 0;
   Serial.println("Sending mDNS query");
@@ -173,7 +170,7 @@ void setup() {
         Serial.print(":");
         Serial.print(MDNS.port(i));
         Serial.println(")");
-        /*
+/*
         // 'Preferred' mDNS hostname
         if(strcmp(MDNS.hostname(i).c_str(), "iotstation") == 0)
         {
@@ -181,7 +178,8 @@ void setup() {
           server = MDNS.IP(i);
           mqttport = MDNS.port(i);
           break;
-        } */
+        }
+*/
       }
     }
     else
@@ -235,4 +233,3 @@ void loop() {
   
   delay(100);
 }
-
